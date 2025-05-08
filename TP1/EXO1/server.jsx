@@ -3,7 +3,7 @@ const app = express();
 const port = 3001;
 
 app.get('/', (req,res) => {
-    res.send('Page de notre serveur')
+    res.send('Hello World')
 })
 
 app.get('/date',(req,res) => {
