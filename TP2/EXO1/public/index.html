@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Créer une tâche</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
     .task { margin: 5px 0; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
     .completed { background-color: #e0ffe0; }
+    button { margin-right: 5px; }
   </style>
 </head>
 <body>
@@ -31,6 +32,77 @@
     const taskList = document.getElementById('taskList');
     const responseOutput = document.getElementById('response');
 
+    // Fonction pour afficher une tâche dans la liste
+    function afficherTâche(data) {
+      const li = document.createElement('li');
+      li.className = 'task';
+      if (data.completée) li.classList.add('completed');
+
+      li.innerHTML = `
+        <strong>ID :</strong> ${data.id}<br>
+        <strong>Titre :</strong> <span class="titre">${data.titre}</span><br>
+        <strong>Complétée :</strong> <span class="etat">${data.completée ? 'Oui' : 'Non'}</span><br>
+        <button class="delete-btn">Supprimer</button>
+        <button class="edit-btn">Modifier</button>
+      `;
+
+      // Suppression
+      li.querySelector('.delete-btn').addEventListener('click', async () => {
+        if (!confirm('Confirmer la suppression ?')) return;
+
+        try {
+          const response = await fetch(`/tasks/${data.id}`, { method: 'DELETE' });
+          if (!response.ok) throw new Error('Erreur lors de la suppression');
+          li.remove();
+        } catch (err) {
+          alert('Erreur : ' + err.message);
+        }
+      });
+
+      // Modification
+      li.querySelector('.edit-btn').addEventListener('click', async () => {
+        const nouveauTitre = prompt('Nouveau titre ?', data.titre);
+        if (nouveauTitre === null) return;
+        const nouvelleCompletion = confirm('La tâche est-elle complétée ?');
+
+        try {
+          const response = await fetch(`/tasks/${data.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ titre: nouveauTitre, completée: nouvelleCompletion })
+          });
+
+          if (!response.ok) throw new Error('Erreur lors de la modification');
+
+          const updated = await response.json();
+          li.querySelector('.titre').textContent = updated.titre;
+          li.querySelector('.etat').textContent = updated.completée ? 'Oui' : 'Non';
+          if (updated.completée) {
+            li.classList.add('completed');
+          } else {
+            li.classList.remove('completed');
+          }
+        } catch (err) {
+          alert('Erreur : ' + err.message);
+        }
+      });
+
+      taskList.appendChild(li);
+    }
+
+    // Chargement initial des tâches
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const response = await fetch('/tasks');
+        if (!response.ok) throw new Error('Erreur lors du chargement des tâches');
+        const tasks = await response.json();
+        tasks.forEach(afficherTâche);
+      } catch (error) {
+        responseOutput.textContent = `Erreur au chargement : ${error.message}`;
+      }
+    });
+
+    // Création d’une nouvelle tâche via formulaire
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -53,18 +125,8 @@
         // Afficher la réponse JSON brute
         responseOutput.textContent = JSON.stringify(data, null, 2);
 
-        // Ajouter tous les détails de la tâche à la liste
-        const li = document.createElement('li');
-        li.className = 'task';
-        if (data.completée) li.classList.add('completed');
-
-        li.innerHTML = `
-          <strong>ID :</strong> ${data.id}<br>
-          <strong>Titre :</strong> ${data.titre}<br>
-          <strong>Complétée :</strong> ${data.completée ? 'Oui' : 'Non'}
-        `;
-
-        taskList.appendChild(li);
+        // Afficher la nouvelle tâche dans la liste
+        afficherTâche(data);
 
         // Réinitialiser le formulaire
         form.reset();
