@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Créer une tâche</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .task { margin: 5px 0; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    .completed { background-color: #e0ffe0; }
+  </style>
+</head>
+<body>
+  <h1>Créer une tâche</h1>
+
+  <form id="taskForm">
+    <label for="titre">Titre :</label>
+    <input type="text" id="titre" name="titre" placeholder="Titre de la tâche" required />
+    <label>
+      <input type="checkbox" id="completée" /> Tâche complétée
+    </label>
+    <button type="submit">Créer</button>
+  </form>
+
+  <h2>Liste des tâches</h2>
+  <ul id="taskList"></ul>
+
+  <pre id="response"></pre>
+
+  <script>
+    const form = document.getElementById('taskForm');
+    const taskList = document.getElementById('taskList');
+    const responseOutput = document.getElementById('response');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const titre = document.getElementById('titre').value;
+      const completée = document.getElementById('completée').checked;
+
+      try {
+        const response = await fetch('/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ titre, completée })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Erreur serveur : ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Afficher la réponse JSON brute
+        responseOutput.textContent = JSON.stringify(data, null, 2);
+
+        // Ajouter tous les détails de la tâche à la liste
+        const li = document.createElement('li');
+        li.className = 'task';
+        if (data.completée) li.classList.add('completed');
+
+        li.innerHTML = `
+          <strong>ID :</strong> ${data.id}<br>
+          <strong>Titre :</strong> ${data.titre}<br>
+          <strong>Complétée :</strong> ${data.completée ? 'Oui' : 'Non'}
+        `;
+
+        taskList.appendChild(li);
+
+        // Réinitialiser le formulaire
+        form.reset();
+
+      } catch (error) {
+        responseOutput.textContent = `Erreur : ${error.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
